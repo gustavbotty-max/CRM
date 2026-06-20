@@ -70,6 +70,12 @@ For local dev, also allow:
 http://localhost:5173
 ```
 
+For GitHub Pages, allow:
+
+```text
+https://gustavbotty-max.github.io/CRM/
+```
+
 ### 5. Run locally
 
 ```bash

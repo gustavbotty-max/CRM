@@ -141,9 +141,10 @@ function App() {
     event.preventDefault()
     if (!supabase || !email) return
     setSaving(true)
+    const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: redirectTo },
     })
     setSaving(false)
     setAuthMessage(error ? error.message : 'Check your email for a login link.')
