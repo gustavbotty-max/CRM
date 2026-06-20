@@ -158,6 +158,7 @@ drop policy if exists "Workspace admins can update workspaces" on public.workspa
 drop policy if exists "Members can read workspace memberships" on public.workspace_members;
 drop policy if exists "Users can create their own membership" on public.workspace_members;
 drop policy if exists "Workspace admins can manage memberships" on public.workspace_members;
+drop policy if exists "Workspace admins can delete memberships" on public.workspace_members;
 drop policy if exists "Workspace members can read activities" on public.lead_activities;
 drop policy if exists "Workspace members can insert activities" on public.lead_activities;
 drop policy if exists "Workspace members can update activities" on public.lead_activities;
@@ -188,6 +189,10 @@ create policy "Workspace admins can manage memberships"
   on public.workspace_members for update
   using (public.is_workspace_admin(workspace_id))
   with check (public.is_workspace_admin(workspace_id));
+
+create policy "Workspace admins can delete memberships"
+  on public.workspace_members for delete
+  using (public.is_workspace_admin(workspace_id));
 
 create policy "Workspace members can read leads"
   on public.leads for select

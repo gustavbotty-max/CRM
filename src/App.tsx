@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import './App.css'
 import { supabase, supabaseConfigured, supabaseUrl } from './supabase'
 import { emptyActivity, emptyLead, stages } from './types'
-import type { Activity, ActivityDraft, ActivityType, Lead, LeadDraft, Priority, StageId, Workspace } from './types'
+import type { Activity, ActivityDraft, ActivityType, Lead, LeadDraft, MemberRole, Priority, StageId, Workspace, WorkspaceMember } from './types'
 
 const LOCAL_KEY = 'crm-lite-local-leads-v2'
 const LOCAL_WORKSPACE_KEY = 'crm-lite-local-workspace-v1'
@@ -114,6 +114,10 @@ function App() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>('')
   const [workspaceName, setWorkspaceName] = useState('')
+  const [members, setMembers] = useState<WorkspaceMember[]>([])
+  const [memberEmail, setMemberEmail] = useState('gustavbotty@gmail.com')
+  const [memberRole, setMemberRole] = useState<MemberRole>('automation')
+  const [showMembers, setShowMembers] = useState(false)
   const [leads, setLeads] = useState<Lead[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
@@ -148,6 +152,7 @@ function App() {
     if (!supabase) return
     if (!session) {
       setWorkspaces([])
+      setMembers([])
       setLeads([])
       setActivities([])
       setLoading(false)
@@ -162,6 +167,7 @@ function App() {
     if (supabase && session) {
       fetchLeads(activeWorkspaceId)
       fetchActivities(activeWorkspaceId)
+      fetchMembers(activeWorkspaceId)
     } else {
       setLeads(localLoad().filter((lead) => (lead.workspace_id ?? demoWorkspace.id) === activeWorkspaceId))
     }
@@ -246,6 +252,68 @@ function App() {
       .limit(100)
 
     if (!error) setActivities((data ?? []) as Activity[])
+  }
+
+  async function fetchMembers(workspaceId = activeWorkspaceId) {
+    if (!supabase || !session || !workspaceId) return
+    const { data, error } = await supabase
+      .from('workspace_members')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      setToast(error.message)
+      setMembers([])
+    } else {
+      setMembers((data ?? []) as WorkspaceMember[])
+    }
+  }
+
+  async function inviteMember(event: FormEvent) {
+    event.preventDefault()
+    if (!supabase || !session || !activeWorkspaceId || !memberEmail.trim()) return
+    setSaving(true)
+    const { error } = await supabase.from('workspace_members').insert({
+      workspace_id: activeWorkspaceId,
+      user_id: null,
+      email: memberEmail.trim().toLowerCase(),
+      role: memberRole,
+    })
+    setSaving(false)
+    if (error) {
+      setToast(error.message)
+      return
+    }
+    setToast('Member added')
+    setMemberEmail('')
+    setMemberRole('member')
+    await fetchMembers(activeWorkspaceId)
+  }
+
+  async function removeMember(memberId: string) {
+    if (!supabase || !session || !confirm('Remove this member from the pipeline?')) return
+    setSaving(true)
+    const { error } = await supabase.from('workspace_members').delete().eq('id', memberId)
+    setSaving(false)
+    if (error) {
+      setToast(error.message)
+      return
+    }
+    setToast('Member removed')
+    await fetchMembers(activeWorkspaceId)
+  }
+
+  async function updateMemberRole(memberId: string, role: MemberRole) {
+    if (!supabase || !session) return
+    setSaving(true)
+    const { error } = await supabase.from('workspace_members').update({ role }).eq('id', memberId)
+    setSaving(false)
+    if (error) {
+      setToast(error.message)
+      return
+    }
+    await fetchMembers(activeWorkspaceId)
   }
 
   async function sendMagicLink(event: FormEvent) {
@@ -506,7 +574,48 @@ function App() {
           <input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="New pipeline name" />
           <button disabled={saving}>Create pipeline</button>
         </form>
+        {usingCloud && <button className="manage-members-button" onClick={() => setShowMembers((value) => !value)}>{showMembers ? 'Hide members' : 'Manage members'}</button>}
       </section>
+
+      {showMembers && activeWorkspace && (
+        <section className="members-panel">
+          <div className="members-head">
+            <div>
+              <p className="eyebrow">Pipeline access</p>
+              <h2>{activeWorkspace.name}</h2>
+              <p>Invite Gustav or another teammate by email. Their records stay tied to this pipeline, not a separate CRM.</p>
+            </div>
+          </div>
+          <form className="member-invite" onSubmit={inviteMember}>
+            <input type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder="gustavbotty@gmail.com" required />
+            <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as MemberRole)}>
+              <option value="automation">Automation</option>
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+              <option value="owner">Owner</option>
+            </select>
+            <button className="primary" disabled={saving}>Add member</button>
+          </form>
+          <div className="members-list">
+            {members.length === 0 && <div className="empty">No members found yet.</div>}
+            {members.map((member) => (
+              <article className="member-row" key={member.id}>
+                <div>
+                  <strong>{member.email}</strong>
+                  <span>{member.user_id ? 'Linked login' : 'Email invite / pending login'}</span>
+                </div>
+                <select value={member.role} onChange={(event) => updateMemberRole(member.id, event.target.value as MemberRole)} disabled={saving || member.user_id === session?.user.id}>
+                  <option value="automation">Automation</option>
+                  <option value="member">Member</option>
+                  <option value="admin">Admin</option>
+                  <option value="owner">Owner</option>
+                </select>
+                <button className="danger" onClick={() => removeMember(member.id)} disabled={saving || member.user_id === session?.user.id}>Remove</button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="toolbar">
         <label className="search">
