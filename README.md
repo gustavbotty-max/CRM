@@ -5,8 +5,11 @@ A mobile-friendly visual CRM funnel for prospects and leads.
 ## Features
 
 - Drag-and-drop funnel stages
+- Multiple pipelines/workspaces for Clearpath, Counter Culture, Triangle Money Guide, etc.
 - Add/edit/delete leads
 - Notes, tags, priority, next action date
+- Lead activity log for calls, meetings, voice notes, transcripts, emails, and follow-up tasks
+- Source tracking for manual entries, voice notes, meeting transcripts, email imports, and future automations
 - Search/filter
 - Magic-link login with Supabase Auth
 - Supabase database sync across laptop/mobile
@@ -54,7 +57,9 @@ Run `supabase-schema.sql` in:
 
 Supabase Dashboard → SQL Editor → New query → Run.
 
-This creates the `leads` table, indexes, and row-level security policies so each authenticated user only sees their own leads.
+This creates the `workspaces`, `workspace_members`, `leads`, and `lead_activities` tables, indexes, and row-level security policies so each authenticated user only sees pipelines they belong to.
+
+The migration is safe to run more than once and will backfill existing leads into a `Personal CRM` pipeline before making `workspace_id` required.
 
 ### 4. Enable magic-link login
 
