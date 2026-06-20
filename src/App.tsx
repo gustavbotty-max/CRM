@@ -270,22 +270,39 @@ function App() {
     }
   }
 
+  async function sendMemberLoginLink(targetEmail: string) {
+    if (!supabase || !targetEmail.trim()) return false
+    const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`
+    const { error } = await supabase.auth.signInWithOtp({
+      email: targetEmail.trim().toLowerCase(),
+      options: { emailRedirectTo: redirectTo },
+    })
+    if (error) {
+      setToast(`Member added, but login email failed: ${error.message}`)
+      return false
+    }
+    return true
+  }
+
   async function inviteMember(event: FormEvent) {
     event.preventDefault()
     if (!supabase || !session || !activeWorkspaceId || !memberEmail.trim()) return
+    const targetEmail = memberEmail.trim().toLowerCase()
     setSaving(true)
     const { error } = await supabase.from('workspace_members').insert({
       workspace_id: activeWorkspaceId,
       user_id: null,
-      email: memberEmail.trim().toLowerCase(),
+      email: targetEmail,
       role: memberRole,
     })
-    setSaving(false)
     if (error) {
+      setSaving(false)
       setToast(error.message)
       return
     }
-    setToast('Member added')
+    const sent = await sendMemberLoginLink(targetEmail)
+    setSaving(false)
+    setToast(sent ? 'Member added and login email sent' : 'Member added')
     setMemberEmail('')
     setMemberRole('member')
     await fetchMembers(activeWorkspaceId)
@@ -610,6 +627,7 @@ function App() {
                   <option value="admin">Admin</option>
                   <option value="owner">Owner</option>
                 </select>
+                <button type="button" onClick={() => sendMemberLoginLink(member.email).then((sent) => sent && setToast('Login email sent'))} disabled={saving}>Send login email</button>
                 <button className="danger" onClick={() => removeMember(member.id)} disabled={saving || member.user_id === session?.user.id}>Remove</button>
               </article>
             ))}

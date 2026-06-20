@@ -45,7 +45,7 @@ label { display: grid; gap: 7px; font-size: 12px; font-weight: 750; color: #5046
 .members-head p { margin: 6px 0 0; color: var(--muted); }
 .member-invite { display: grid; grid-template-columns: minmax(260px, 1fr) 170px auto; gap: 10px; margin: 14px 0; }
 .members-list { display: grid; gap: 10px; }
-.member-row { display: grid; grid-template-columns: minmax(220px, 1fr) 170px auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-2); padding: 10px; }
+.member-row { display: grid; grid-template-columns: minmax(220px, 1fr) 170px auto auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-2); padding: 10px; }
 .member-row strong { display: block; }
 .member-row span { color: var(--muted); font-size: 12px; }
 .toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) repeat(4, 150px); gap: 12px; background: rgba(255,253,248,.84); border: 1px solid rgba(227,217,204,.9); border-radius: 24px; padding: 14px; box-shadow: 0 18px 50px rgba(44,35,24,.10); margin-bottom: 18px; }
